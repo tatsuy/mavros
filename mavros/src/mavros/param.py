@@ -13,7 +13,7 @@ import rospy
 import mavros
 
 from mavros_msgs.msg import ParamValue
-from mavros_msgs.srv import ParamPull, ParamPush, ParamGet, ParamSet
+from mavros_msgs.srv import ParamPull, ParamPush, ParamGet, ParamSet, ParamFetch
 
 
 class Parameter(object):
@@ -124,6 +124,19 @@ def param_get(param_id):
     try:
         get = rospy.ServiceProxy(mavros.get_topic('param', 'get'), ParamGet)
         ret = get(param_id=param_id)
+    except rospy.ServiceException as ex:
+        raise IOError(str(ex))
+
+    if not ret.success:
+        raise IOError("Request failed.")
+
+    return param_ret_value(ret)
+
+
+def param_fetch(param_id):
+    try:
+        fetch = rospy.ServiceProxy(mavros.get_topic('param', 'fetch'), ParamFetch)
+        ret = fetch(param_id=param_id)
     except rospy.ServiceException as ex:
         raise IOError(str(ex))
 

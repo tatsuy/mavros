@@ -88,6 +88,7 @@ add_service_files(
   ParamPull.srv
   ParamPush.srv
   ParamSet.srv
+  ParamFetch.srv
   SetMavFrame.srv
   SetMode.srv
   StreamRate.srv

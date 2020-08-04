@@ -22,6 +22,7 @@
 #include <mavros_msgs/ParamGet.h>
 #include <mavros_msgs/ParamPull.h>
 #include <mavros_msgs/ParamPush.h>
+#include <mavros_msgs/ParamFetch.h>
 #include <mavros_msgs/Param.h>
 
 namespace mavros {
@@ -372,6 +373,7 @@ public:
 		push_srv = param_nh.advertiseService("push", &ParamPlugin::push_cb, this);
 		set_srv = param_nh.advertiseService("set", &ParamPlugin::set_cb, this);
 		get_srv = param_nh.advertiseService("get", &ParamPlugin::get_cb, this);
+                fetch_srv = param_nh.advertiseService("fetch", &ParamPlugin::fetch_cb, this);
 
 		param_value_pub = param_nh.advertise<mavros_msgs::Param>("param_value", 100);
 
@@ -400,6 +402,7 @@ private:
 	ros::ServiceServer push_srv;
 	ros::ServiceServer set_srv;
 	ros::ServiceServer get_srv;
+	ros::ServiceServer fetch_srv;
 
 	ros::Publisher param_value_pub;
 
@@ -559,7 +562,7 @@ private:
 	{
 		ROS_ASSERT(index >= -1);
 
-		ROS_DEBUG_NAMED("param", "PR:m: request '%s', idx %d", id.c_str(), index);
+		ROS_INFO_NAMED("param", "PR:m: request '%s', idx %d", id.c_str(), index);
 
 		mavlink::common::msg::PARAM_REQUEST_READ rqr{};
 		m_uas->msg_set_target(rqr);
@@ -929,6 +932,32 @@ private:
 
 		return true;
 	}
+ 
+         /**
+         * @brief get parameter
+         * @service ~param/fetch
+         */
+        bool fetch_cb(mavros_msgs::ParamFetch::Request &req,
+                        mavros_msgs::ParamFetch::Response &res)
+        {
+                lock_guard lock(mutex);
+
+                auto param_it = parameters.find(req.param_id);
+                if (param_it != parameters.end()) {
+                        param_request_read("", param_it->second.param_index);
+
+                        res.success = true;
+
+                        res.value.integer = param_it->second.to_integer();
+                        res.value.real = param_it->second.to_real();
+		}
+		else {
+			ROS_ERROR_STREAM_NAMED("param", "PR: Unknown parameter to get: " << req.param_id);
+			res.success = false;
+		}
+
+                return true;
+        }
 };
 }	// namespace std_plugins
 }	// namespace mavros
